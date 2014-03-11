@@ -5,8 +5,10 @@ import ch.codepanda.gestureimage.gestures.RotateGestureDetector;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.widget.ImageView;
@@ -129,13 +131,22 @@ public class GestureImageView extends ImageView {
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+        float x = event.getX();
+        float y = event.getY();
+
+        float scaledImageCenterX = getScaledImageCenterX();
+        float scaledImageCenterY = getScaledImageCenterY();
+
+        if(event.getAction() == MotionEvent.ACTION_DOWN){
+            if(!isTouchInside(scaledImageCenterX, scaledImageCenterY, x, y)){
+                return false;
+            }
+        }
+
 		mScaleDetector.onTouchEvent(event);
         mRotateDetector.onTouchEvent(event);
         mMoveDetector.onTouchEvent(event);
-        
-        float scaledImageCenterX = getScaledImageCenterX();
-        float scaledImageCenterY = getScaledImageCenterY();
-        
+
         float deltaX = mFocusX - scaledImageCenterX, deltaY = mFocusY - scaledImageCenterY;
         
         mMatrix.reset();
@@ -178,6 +189,44 @@ public class GestureImageView extends ImageView {
 
 		return true; // indicate event was handled
 	}
+
+    /**
+     *
+     * @param px  旋转中心x轴坐标
+     * @param py  旋转中心y轴坐标
+     * @param ex  触摸的x轴坐标
+     * @param ey  触摸的y轴坐标
+     * @return    是否触摸到ImageView其中的bitmap图片范围
+     */
+    public boolean isTouchInside(float px,float py,float ex,float ey){
+        RectF dispalyRect = new RectF();
+        Matrix matrix = new Matrix();
+        matrix.set(mMatrix);
+        //逆向旋转矩阵
+        matrix.postRotate(-1*mRotationDegrees, px, py);
+
+        Drawable d = getDrawable();
+        if (null != d) {
+            //根据逆向旋转矩阵得到平面坐标的矩形
+            dispalyRect.set(0, 0, d.getIntrinsicWidth(),
+                    d.getIntrinsicHeight());
+            matrix.mapRect(dispalyRect);
+        }else{
+            return false;
+        }
+
+        matrix.reset();
+        //逆向旋转矩阵
+        matrix.postRotate(-1*mRotationDegrees, px, py);
+        float[] pts = {ex,ey};
+        //把触摸的点的坐标逆向旋转得到与之对应的矩形xy轴的新坐标
+        matrix.mapPoints(pts);
+
+        //判断逆向旋转后坐标点是否在其矩形内
+        boolean b = dispalyRect.contains(pts[0], pts[1]);
+        Log.i("Gesture", "houjie1 touchInside is " + b);
+        return b;
+    }
 	
 	public interface OnClickListener {
 		public void onClick(GestureImageView view, float eventX, float eventY);

@@ -33,7 +33,7 @@
         android:id="@+id/iv_gesture"
 	    android:layout_width="match_parent"
 	    android:layout_height="match_parent"
-	    android:src="@drawable/android_robot_200"
+	    android:src="@drawable/wait_bg"
          />
 
 </LinearLayout>
